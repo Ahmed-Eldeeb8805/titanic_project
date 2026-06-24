@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RMS Titanic — Survival Manifest Predictor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0c1b2e;
+    --ink-soft:#1c3354;
+    --bone:#f1ead9;
+    --bone-soft:#e6dcc3;
+    --paper:#f8f3e7;
+    --brass:#a9762f;
+    --brass-bright:#c98f3f;
+    --rust:#8a3324;
+    --line:rgba(12,27,46,0.16);
+    --shadow:rgba(12,27,46,0.25);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  body{
+    background:var(--ink);
+    background-image:
+      radial-gradient(ellipse at top, rgba(255,255,255,0.04), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, transparent 1px, transparent 3px);
+    color:var(--bone);
+    font-family:'Cormorant Garamond', serif;
+    min-height:100vh;
+    padding:48px 20px 80px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .wrap{ width:100%; max-width:920px; }
+
+  /* ===== Header ===== */
+  header{
+    text-align:center;
+    margin-bottom:40px;
+    position:relative;
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.35em;
+    color:var(--brass-bright);
+    text-transform:uppercase;
+    margin-bottom:14px;
+  }
+  .eyebrow::before, .eyebrow::after{ content:"——— "; color:var(--brass); }
+  .eyebrow::after{ content:" ———"; }
+  h1{
+    font-family:'Playfair Display', serif;
+    font-weight:900;
+    font-size:clamp(34px, 6vw, 56px);
+    line-height:1.05;
+    color:var(--bone);
+    letter-spacing:0.01em;
+  }
+  h1 em{
+    font-style:italic;
+    color:var(--brass-bright);
+    font-weight:500;
+  }
+  .subtitle{
+    font-size:17px;
+    color:rgba(241,234,217,0.65);
+    margin-top:14px;
+    font-style:italic;
+  }
+
+  /* ===== Manifest Card ===== */
+  .manifest{
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:2px;
+    box-shadow:0 30px 60px -20px var(--shadow), 0 0 0 1px rgba(12,27,46,0.08);
+    position:relative;
+    overflow:hidden;
+  }
+  .manifest::before{
+    content:"";
+    position:absolute; inset:14px;
+    border:1px solid var(--brass);
+    opacity:0.4;
+    pointer-events:none;
+  }
+  .manifest-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    padding:30px 38px 18px;
+    border-bottom:2px solid var(--ink);
+  }
+  .manifest-head .ship-name{
+    font-family:'Playfair Display', serif;
+    font-weight:700;
+    font-size:22px;
+    letter-spacing:0.02em;
+  }
+  .manifest-head .doc-id{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color:var(--rust);
+    letter-spacing:0.05em;
+  }
+
+  form{ padding:30px 38px 8px; }
+
+  .field-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:22px 28px;
+  }
+  @media (max-width:620px){
+    .field-grid{ grid-template-columns:1fr; }
+  }
+
+  .field{ position:relative; }
+  .field.full{ grid-column:1 / -1; }
+
+  label{
+    display:block;
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+  }
+  label .num{ color:var(--brass); margin-left:6px; }
+
+  select, input[type="number"]{
+    width:100%;
+    background:transparent;
+    border:none;
+    border-bottom:1.5px solid var(--line);
+    font-family:'Cormorant Garamond', serif;
+    font-size:19px;
+    font-weight:600;
+    color:var(--ink);
+    padding:6px 2px 10px;
+    outline:none;
+    transition:border-color 0.25s ease;
+    appearance:none;
+    -webkit-appearance:none;
+  }
+  select{ cursor:pointer; }
+  select:focus, input:focus{ border-color:var(--brass); }
+
+  .select-wrap{ position:relative; }
+  .select-wrap::after{
+    content:"▾";
+    position:absolute;
+    right:4px; bottom:10px;
+    color:var(--brass);
+    font-size:13px;
+    pointer-events:none;
+  }
+
+  .pclass-row{ display:flex; gap:10px; margin-top:4px; }
+  .pclass-opt{
+    flex:1;
+    text-align:center;
+    border:1.5px solid var(--line);
+    padding:10px 4px;
+    cursor:pointer;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.04em;
+    transition:all 0.2s ease;
+    user-select:none;
+  }
+  .pclass-opt:hover{ border-color:var(--brass); }
+  .pclass-opt.active{
+    background:var(--ink);
+    color:var(--bone);
+    border-color:var(--ink);
+  }
+
+  .sex-row{ display:flex; gap:10px; margin-top:4px; }
+  .sex-opt{
+    flex:1;
+    text-align:center;
+    border:1.5px solid var(--line);
+    padding:10px 4px;
+    cursor:pointer;
+    font-family:'Cormorant Garamond', serif;
+    font-weight:600;
+    font-size:16px;
+    transition:all 0.2s ease;
+    user-select:none;
+  }
+  .sex-opt:hover{ border-color:var(--brass); }
+  .sex-opt.active{
+    background:var(--rust);
+    color:var(--paper);
+    border-color:var(--rust);
+  }
+
+  .hint{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10px;
+    color:rgba(12,27,46,0.45);
+    margin-top:6px;
+    letter-spacing:0.02em;
+  }
+
+  /* ===== Submit ===== */
+  .submit-row{
+    padding:26px 38px 34px;
+    display:flex;
+    align-items:center;
+    gap:20px;
+  }
+  button.predict{
+    background:var(--ink);
+    color:var(--bone);
+    border:none;
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    letter-spacing:0.15em;
+    text-transform:uppercase;
+    padding:16px 34px;
+    cursor:pointer;
+    position:relative;
+    transition:background 0.25s ease, transform 0.15s ease;
+  }
+  button.predict:hover{ background:var(--ink-soft); }
+  button.predict:active{ transform:scale(0.98); }
+  .seal-note{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    color:rgba(12,27,46,0.5);
+    letter-spacing:0.03em;
+  }
+
+  /* ===== Result ===== */
+  .result{
+    margin-top:0;
+    max-height:0;
+    overflow:hidden;
+    transition:max-height 0.5s ease;
+  }
+  .result.open{ max-height:600px; }
+  .result-inner{
+    border-top:2px solid var(--ink);
+    padding:32px 38px 38px;
+    display:flex;
+    gap:28px;
+    align-items:center;
+  }
+  @media (max-width:620px){
+    .result-inner{ flex-direction:column; text-align:center; }
+  }
+  .stamp{
+    width:108px; height:108px;
+    border-radius:50%;
+    border:3px solid currentColor;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+    transform:rotate(-8deg);
+    font-family:'Playfair Display', serif;
+  }
+  .stamp.survived{ color:var(--ink-soft); }
+  .stamp.lost{ color:var(--rust); }
+  .stamp .verdict{ font-weight:900; font-size:15px; letter-spacing:0.04em; line-height:1.15; text-align:center; }
+  .stamp .pct{ font-family:'JetBrains Mono', monospace; font-size:13px; margin-top:4px; }
+
+  .result-text h3{
+    font-family:'Playfair Display', serif;
+    font-size:24px;
+    margin-bottom:8px;
+  }
+  .result-text p{
+    font-size:16px;
+    color:var(--ink-soft);
+    line-height:1.5;
+  }
+  .bar-track{
+    margin-top:14px;
+    height:8px;
+    background:rgba(12,27,46,0.1);
+    position:relative;
+    overflow:hidden;
+  }
+  .bar-fill{
+    height:100%;
+    background:linear-gradient(90deg, var(--brass), var(--rust));
+    width:0%;
+    transition:width 0.8s cubic-bezier(.22,.9,.3,1);
+  }
+
+  /* ===== Footer / model info ===== */
+  .model-strip{
+    margin-top:28px;
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:14px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color:rgba(241,234,217,0.5);
+    letter-spacing:0.04em;
+    padding:0 6px;
+  }
+  .model-strip b{ color:var(--brass-bright); }
+
+  a.footer-link{ color:var(--brass-bright); text-decoration:none; border-bottom:1px dotted var(--brass-bright); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Would You Have <em>Survived</em><br>the Titanic?</h1>
+    <p class="subtitle">Enter a passenger's details and see what the model predicts</p>
+  </header>
+
+  <div class="manifest">
+    <div class="manifest-head">
+      <div class="ship-name">R.M.S. TITANIC — PASSENGER MANIFEST</div>
+      <div class="doc-id">FORM № 1912-04</div>
+    </div>
+
+    <form id="predictForm">
+      <div class="field-grid">
+
+        <div class="field full">
+          <label>Class <span class="num">01</span></label>
+          <div class="pclass-row" id="pclassRow">
+            <div class="pclass-opt active" data-val="1">First</div>
+            <div class="pclass-opt" data-val="2">Second</div>
+            <div class="pclass-opt" data-val="3">Third</div>
+          </div>
+        </div>
+
+        <div class="field full">
+          <label>Sex <span class="num">02</span></label>
+          <div class="sex-row" id="sexRow">
+            <div class="sex-opt active" data-val="0">Male</div>
+            <div class="sex-opt" data-val="1">Female</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Age <span class="num">03</span></label>
+          <input type="number" id="age" value="30" min="0" max="100" step="1">
+        </div>
+
+        <div class="field">
+          <label>Port of Embarkation <span class="num">07</span></label>
+          <div class="select-wrap">
+            <select id="embarked">
+              <option value="0">Southampton</option>
+              <option value="1">Cherbourg</option>
+              <option value="2">Queenstown</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Siblings / Spouse Aboard <span class="num">04</span></label>
+          <input type="number" id="sibsp" value="0" min="0" max="10" step="1">
+        </div>
+
+        <div class="field">
+          <label>Parents / Children Aboard <span class="num">05</span></label>
+          <input type="number" id="parch" value="0" min="0" max="10" step="1">
+        </div>
+
+        <div class="field full">
+          <label>Ticket Fare (£) <span class="num">06</span></label>
+          <input type="number" id="fare" value="32" min="0" max="600" step="0.5">
+          <div class="hint">The historical average fare was about £32</div>
+        </div>
+
+      </div>
+
+      <div class="submit-row">
+        <button type="submit" class="predict">Predict →</button>
+        <span class="seal-note">All calculation happens in your browser — no server</span>
+      </div>
+    </form>
+
+    <div class="result" id="resultBox">
+      <div class="result-inner">
+        <div class="stamp" id="stamp">
+          <div class="verdict" id="verdictText">—</div>
+          <div class="pct" id="pctText">—</div>
+        </div>
+        <div class="result-text">
+          <h3 id="resultTitle">—</h3>
+          <p id="resultDesc">—</p>
+          <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ===== Model parameters (from trained NumPy model) ===== */
+/* Column order: Pclass, Sex, Age, SibSp, Parch, Fare, Embarked */
+const COLS  = ['Pclass','Sex','Age','SibSp','Parch','Fare','Embarked'];
+const W     = [-0.8351277576630859, 1.2980098386621735, -0.4315579034215032, -0.3485882409331006, -0.09631987623634426, 0.13199994059625417, 0.1493810026359163];
+const B     = -0.6268235933333077;
+const MEAN  = [2.308641975308642, 0.35241301907968575, 29.69911764705882, 0.5230078563411896, 0.38159371492704824, 32.204207968574636, 0.3613916947250281];
+const STD   = [0.8356019334795166, 0.4777217632292115, 12.99471687278903, 1.1021244350892878, 0.8056047612452208, 49.6655344447741, 0.6353166485160292];
+
+function sigmoid(z){ return 1 / (1 + Math.exp(-z)); }
+
+function predict(rawFeatures){
+  // normalize using training mean/std (same scaling used during training)
+  const scaled = rawFeatures.map((v, i) => (v - MEAN[i]) / STD[i]);
+  let z = B;
+  for (let i = 0; i < scaled.length; i++) z += scaled[i] * W[i];
+  return sigmoid(z);
+}
+
+/* ===== UI: pclass toggle ===== */
+let pclass = 1;
+document.querySelectorAll('#pclassRow .pclass-opt').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('#pclassRow .pclass-opt').forEach(o => o.classList.remove('active'));
+    el.classList.add('active');
+    pclass = parseInt(el.dataset.val);
+  });
+});
+
+/* ===== UI: sex toggle ===== */
+let sex = 0;
+document.querySelectorAll('#sexRow .sex-opt').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('#sexRow .sex-opt').forEach(o => o.classList.remove('active'));
+    el.classList.add('active');
+    sex = parseInt(el.dataset.val);
+  });
+});
+
+/* ===== Form submit ===== */
+document.getElementById('predictForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+
+  const age      = parseFloat(document.getElementById('age').value) || 0;
+  const sibsp    = parseFloat(document.getElementById('sibsp').value) || 0;
+  const parch    = parseFloat(document.getElementById('parch').value) || 0;
+  const fare     = parseFloat(document.getElementById('fare').value) || 0;
+  const embarked = parseInt(document.getElementById('embarked').value);
+
+  // must match COLS order exactly: Pclass, Sex, Age, SibSp, Parch, Fare, Embarked
+  const features = [pclass, sex, age, sibsp, parch, fare, embarked];
+  const prob = predict(features);
+  const survived = prob >= 0.5;
+  const pct = (survived ? prob : 1 - prob) * 100;
+  const label = survived ? 'Survived' : 'Unsurvived';
+
+  const stamp = document.getElementById('stamp');
+  stamp.className = 'stamp ' + (survived ? 'survived' : 'lost');
+
+  document.getElementById('verdictText').textContent = pct.toFixed(0) + '%';
+  document.getElementById('pctText').textContent = label;
+
+  document.getElementById('resultTitle').textContent = `${pct.toFixed(0)}% ${label}`;
+
+  document.getElementById('resultDesc').textContent = survived
+    ? `The model gives this passenger a ${pct.toFixed(0)}% chance of survival, based on class, sex, age, and the other details entered.`
+    : `The model gives this passenger a ${pct.toFixed(0)}% chance of not surviving, based on class, sex, age, and the other details entered.`;
+
+  document.getElementById('barFill').style.width = pct.toFixed(1) + '%';
+
+  document.getElementById('resultBox').classList.add('open');
+  document.getElementById('resultBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+</script>
+
+</body>
+</html>
